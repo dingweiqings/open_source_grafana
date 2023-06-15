@@ -1,4 +1,6 @@
 node_modules
+go-depend
+my-lib
 npm-debug.log
 yarn-error.log
 coverage/

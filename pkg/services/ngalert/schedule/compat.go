@@ -2,15 +2,15 @@ package schedule
 
 import (
 	"fmt"
-	"net/url"
-	"path"
-	"time"
-
 	"github.com/benbjohnson/clock"
 	"github.com/go-openapi/strfmt"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
+	"github.com/grafana/grafana/pkg/infra/log"
 	"github.com/prometheus/alertmanager/api/v2/models"
 	"github.com/prometheus/common/model"
+	"net/url"
+	"path"
+	"time"
 
 	apimodels "github.com/grafana/grafana/pkg/services/ngalert/api/tooling/definitions"
 	"github.com/grafana/grafana/pkg/services/ngalert/eval"
@@ -113,13 +113,17 @@ func errorAlert(labels, annotations data.Labels, alertState *state.State, urlStr
 	}
 }
 
+// 转换成要发送的alert
 func FromAlertStateToPostableAlerts(firingStates []*state.State, stateManager *state.Manager, appURL *url.URL) apimodels.PostableAlerts {
 	alerts := apimodels.PostableAlerts{PostableAlerts: make([]models.PostableAlert, 0, len(firingStates))}
+	//alert state
 	var sentAlerts []*state.State
 	ts := time.Now()
-
+	logger := log.New()
+	logger.Debug("eval result state", firingStates)
 	for _, alertState := range firingStates {
 		if !alertState.NeedsSending(stateManager.ResendDelay) {
+			logger.Debug("Don't need send, so skip ", "state", alertState)
 			continue
 		}
 		alert := stateToPostableAlert(alertState, appURL)

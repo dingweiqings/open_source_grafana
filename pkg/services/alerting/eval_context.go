@@ -142,6 +142,7 @@ func (c *EvalContext) GetRuleURL() (string, error) {
 // GetNewState returns the new state from the alert rule evaluation.
 func (c *EvalContext) GetNewState() models.AlertStateType {
 	ns := getNewStateInternal(c)
+	c.Log.Debug("msg", "Get rule state internal ", "state", ns)
 	if ns != models.AlertStateAlerting || c.Rule.For == 0 {
 		return ns
 	}

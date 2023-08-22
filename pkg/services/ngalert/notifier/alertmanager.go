@@ -53,9 +53,9 @@ const (
 	maintenanceNotificationAndSilences = 15 * time.Minute
 	// defaultResolveTimeout is the default timeout used for resolving an alert
 	// if the end time is not specified.
-	defaultResolveTimeout = 5 * time.Minute
+	defaultResolveTimeout = 1 * time.Minute
 	// memoryAlertsGCInterval is the interval at which we'll remove resolved alerts from memory.
-	memoryAlertsGCInterval = 30 * time.Minute
+	memoryAlertsGCInterval = 5 * time.Minute
 )
 
 // How long should we keep silences and notification entries on-disk after they've served their purpose.
@@ -204,7 +204,7 @@ func newAlertmanager(ctx context.Context, orgID int64, cfg *setting.Cfg, store A
 		})
 		am.wg.Done()
 	}()
-
+	//内存中alerts
 	// Initialize in-memory alerts
 	am.alerts, err = mem.NewAlerts(context.Background(), am.marker, memoryAlertsGCInterval, nil, am.logger)
 	if err != nil {
@@ -591,7 +591,7 @@ func (am *Alertmanager) PutAlerts(postableAlerts apimodels.PostableAlerts) error
 
 		alerts = append(alerts, alert)
 	}
-
+	//放入alert
 	if err := am.alerts.Put(alerts...); err != nil {
 		// Notification sending alert takes precedence over validation errors.
 		return err

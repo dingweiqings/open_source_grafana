@@ -3,6 +3,7 @@ package conditions
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -48,7 +49,7 @@ type AlertQuery struct {
 // Eval evaluates the `QueryCondition`.
 func (c *QueryCondition) Eval(context *alerting.EvalContext, requestHandler legacydata.RequestHandler) (*alerting.ConditionResult, error) {
 	timeRange := legacydata.NewDataTimeRange(c.Query.From, c.Query.To)
-
+	log.Default().Println("Haha, we start execute query")
 	seriesList, err := c.executeQuery(context, timeRange, requestHandler)
 	if err != nil {
 		return nil, err

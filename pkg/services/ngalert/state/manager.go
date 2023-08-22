@@ -167,6 +167,7 @@ func (st *Manager) ProcessEvalResults(ctx context.Context, alertRule *ngModels.A
 		states = append(states, s)
 		processedResults[s.CacheId] = s
 	}
+	st.log.Debug("Processed results", "result", processedResults)
 	st.staleResultsHandler(ctx, alertRule, processedResults)
 	return states
 }
@@ -219,7 +220,6 @@ func (st *Manager) setNextState(ctx context.Context, alertRule *ngModels.AlertRu
 	oldState := currentState.State
 	oldReason := currentState.StateReason
 
-	st.log.Debug("setting alert state", "uid", alertRule.UID)
 	switch result.State {
 	case eval.Normal:
 		currentState.resultNormal(alertRule, result)
@@ -243,6 +243,7 @@ func (st *Manager) setNextState(ctx context.Context, alertRule *ngModels.AlertRu
 
 	// Set Resolved property so the scheduler knows to send a postable alert
 	// to Alertmanager.
+	//设置成resolved
 	currentState.Resolved = oldState == eval.Alerting && currentState.State == eval.Normal
 
 	err := st.maybeTakeScreenshot(ctx, alertRule, currentState, oldState)
@@ -255,7 +256,7 @@ func (st *Manager) setNextState(ctx context.Context, alertRule *ngModels.AlertRu
 	}
 
 	st.set(currentState)
-
+	st.log.Debug("setting alert state", "uid", alertRule.UID, "oldState", oldState, "currentState", currentState)
 	shouldUpdateAnnotation := oldState != currentState.State || oldReason != currentState.StateReason
 	if shouldUpdateAnnotation {
 		go st.annotateState(ctx, alertRule, currentState.Labels, result.EvaluatedAt, InstanceStateAndReason{State: currentState.State, Reason: currentState.StateReason}, InstanceStateAndReason{State: oldState, Reason: oldReason})
@@ -370,8 +371,10 @@ func (st *Manager) annotateState(ctx context.Context, alertRule *ngModels.AlertR
 
 func (st *Manager) staleResultsHandler(ctx context.Context, alertRule *ngModels.AlertRule, states map[string]*State) {
 	allStates := st.GetStatesForRuleUID(alertRule.OrgID, alertRule.UID)
+	//获取所有的state
 	for _, s := range allStates {
 		_, ok := states[s.CacheId]
+		//检测在这个interval没有被更新，也就是没有prometheus query result
 		if !ok && isItStale(s.LastEvaluationTime, alertRule.IntervalSeconds) {
 			st.log.Debug("removing stale state entry", "orgID", s.OrgID, "alertRuleUID", s.AlertRuleUID, "cacheID", s.CacheId)
 			st.cache.deleteEntry(s.OrgID, s.AlertRuleUID, s.CacheId)
@@ -380,11 +383,11 @@ func (st *Manager) staleResultsHandler(ctx context.Context, alertRule *ngModels.
 			if err != nil {
 				st.log.Error("unable to get labelsHash", "err", err.Error(), "orgID", s.OrgID, "alertRuleUID", s.AlertRuleUID)
 			}
-
+			//清除db
 			if err = st.instanceStore.DeleteAlertInstance(ctx, s.OrgID, s.AlertRuleUID, labelsHash); err != nil {
 				st.log.Error("unable to delete stale instance from database", "err", err.Error(), "orgID", s.OrgID, "alertRuleUID", s.AlertRuleUID, "cacheID", s.CacheId)
 			}
-
+			//更新db
 			if s.State == eval.Alerting {
 				st.annotateState(ctx, alertRule, s.Labels, time.Now(),
 					InstanceStateAndReason{State: eval.Normal, Reason: ""},

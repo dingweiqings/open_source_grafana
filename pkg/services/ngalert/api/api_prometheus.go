@@ -46,7 +46,7 @@ func (srv PrometheusSrv) RouteGetAlertStatuses(c *models.ReqContext) response.Re
 	if !c.QueryBoolWithDefault(queryIncludeInternalLabels, false) {
 		labelOptions = append(labelOptions, ngmodels.WithoutInternalLabels())
 	}
-
+	//获取all Alert
 	for _, alertState := range srv.manager.GetAll(c.OrgId) {
 		startsAt := alertState.StartsAt
 		valString := ""

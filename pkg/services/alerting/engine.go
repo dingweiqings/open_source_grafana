@@ -105,6 +105,9 @@ func (e *AlertEngine) Run(ctx context.Context) error {
 	return err
 }
 
+/*
+** scheduelr 会产生job放入队列，然后被job 被另外一个定时任务来dispatcher 。生产者消费者模式
+ */
 func (e *AlertEngine) alertingTicker(grafanaCtx context.Context) error {
 	defer func() {
 		if err := recover(); err != nil {
@@ -191,6 +194,10 @@ func (e *AlertEngine) endJob(err error, cancelChan chan context.CancelFunc, job 
 	return err
 }
 
+/*
+*
+处理job
+*/
 func (e *AlertEngine) processJob(attemptID int, attemptChan chan int, cancelChan chan context.CancelFunc, job *Job) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -219,7 +226,7 @@ func (e *AlertEngine) processJob(attemptID int, attemptChan chan int, cancelChan
 				close(attemptChan)
 			}
 		}()
-
+		//进行eval
 		e.evalHandler.Eval(evalContext)
 
 		span.SetAttributes("alertId", evalContext.Rule.ID, attribute.Key("alertId").Int64(evalContext.Rule.ID))
@@ -255,6 +262,7 @@ func (e *AlertEngine) processJob(attemptID int, attemptChan chan int, cancelChan
 		// don't reuse the evalContext and get its own context.
 		evalContext.Ctx = resultHandleCtx
 		evalContext.Rule.State = evalContext.GetNewState()
+		e.log.Debug("msg", "Now get rule state ", "state", evalContext.Rule.State)
 		if err := e.resultHandler.handle(evalContext); err != nil {
 			switch {
 			case errors.Is(err, context.Canceled):

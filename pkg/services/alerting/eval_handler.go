@@ -34,6 +34,7 @@ func (e *DefaultEvalHandler) Eval(context *EvalContext) {
 
 	for i := 0; i < len(context.Rule.Conditions); i++ {
 		condition := context.Rule.Conditions[i]
+		e.log.Debug("msg", "Now we start evalutate rule condition")
 		cr, err := condition.Eval(context, e.requestHandler)
 		if err != nil {
 			context.Error = err

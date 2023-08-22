@@ -59,7 +59,7 @@ func (handler *defaultResultHandler) handle(evalContext *EvalContext) error {
 			Error:    executionError,
 			EvalData: annotationData,
 		}
-
+		//保存到db
 		if err := handler.sqlStore.SetAlertState(evalContext.Ctx, cmd); err != nil {
 			if errors.Is(err, models.ErrCannotChangeStateOnPausedAlert) {
 				handler.log.Error("Cannot change state on alert that's paused", "error", err)
@@ -100,7 +100,7 @@ func (handler *defaultResultHandler) handle(evalContext *EvalContext) error {
 			handler.log.Error("Failed to save annotation for new alert state", "error", err)
 		}
 	}
-
+	//判断是否需要通知
 	if err := handler.notifier.SendIfNeeded(evalContext); err != nil {
 		switch {
 		case errors.Is(err, context.Canceled):

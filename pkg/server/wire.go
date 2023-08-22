@@ -124,6 +124,7 @@ var wireBasicSet = wire.NewSet(
 	wire.Bind(new(alerting.UsageStatsQuerier), new(*alerting.AlertEngine)),
 	setting.NewCfgFromArgs,
 	New,
+	//初始化http server
 	api.ProvideHTTPServer,
 	query.ProvideService,
 	bus.ProvideBus,

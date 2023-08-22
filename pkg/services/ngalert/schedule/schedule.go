@@ -26,6 +26,7 @@ import (
 
 // ScheduleService is an interface for a service that schedules the evaluation
 // of alert rules.
+//
 //go:generate mockery --name ScheduleService --structname FakeScheduleService --inpackage --filename schedule_mock.go
 type ScheduleService interface {
 	// Run the scheduler until the context is canceled or the scheduler returns
@@ -386,7 +387,7 @@ func (sch *schedule) schedulePeriodic(ctx context.Context) error {
 				sch.log.Error("scheduler failed to update alert rules", "err", err)
 			}
 			alertRules := sch.schedulableAlertRules.all()
-
+			//好像是在这里分配rule给不同的机器
 			// registeredDefinitions is a map used for finding deleted alert rules
 			// initially it is assigned to all known alert rules from the previous cycle
 			// each alert rule found also in this cycle is removed
@@ -417,7 +418,7 @@ func (sch *schedule) schedulePeriodic(ctx context.Context) error {
 				}
 
 				invalidInterval := item.IntervalSeconds%int64(sch.baseInterval.Seconds()) != 0
-
+				//为每个规则开启协成轮询
 				if newRoutine && !invalidInterval {
 					dispatcherGroup.Go(func() error {
 						return sch.ruleRoutine(ruleInfo.ctx, key, ruleInfo.evalCh, ruleInfo.updateCh)
@@ -501,10 +502,12 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key models.AlertRul
 		if sch.sendAlertsTo[key.OrgID] == models.ExternalAlertmanagers && len(sch.AlertmanagersFor(key.OrgID)) > 0 {
 			logger.Debug("no alerts to put in the notifier")
 		} else {
+			//开始send alert
 			logger.Debug("sending alerts to local notifier", "count", len(alerts.PostableAlerts), "alerts", alerts.PostableAlerts)
 			n, err := sch.multiOrgNotifier.AlertmanagerFor(key.OrgID)
 			if err == nil {
 				localNotifierExist = true
+				//放入上面找到的alert manager的队列中
 				if err := n.PutAlerts(alerts); err != nil {
 					logger.Error("failed to put alerts in the local notifier", "count", len(alerts.PostableAlerts), "err", err)
 				}
@@ -563,6 +566,7 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key models.AlertRul
 			Data:      r.Data,
 		}
 		results, err := sch.evaluator.ConditionEval(&condition, e.scheduledAt, sch.expressionService)
+		logger.Debug("Condition results ", "result", results)
 		dur := sch.clock.Now().Sub(start)
 		evalTotal.Inc()
 		evalDuration.Observe(dur.Seconds())
@@ -577,7 +581,8 @@ func (sch *schedule) ruleRoutine(grafanaCtx context.Context, key models.AlertRul
 		processedStates := sch.stateManager.ProcessEvalResults(ctx, r, results)
 		sch.saveAlertStates(ctx, processedStates)
 		alerts := FromAlertStateToPostableAlerts(processedStates, sch.stateManager, sch.appURL)
-
+		logger.Debug("Postable alerts ", "array", alerts)
+		//这里是和alert manager连接的地方
 		notify(alerts, logger)
 		return nil
 	}

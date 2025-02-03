@@ -6865,7 +6865,6 @@
       }
     },
     "alertGroup": {
-      "description": "AlertGroup alert group",
       "type": "object",
       "required": [
         "alerts",
@@ -6996,6 +6995,7 @@
       }
     },
     "gettableAlert": {
+      "description": "GettableAlert gettable alert",
       "type": "object",
       "required": [
         "labels",
@@ -7052,7 +7052,6 @@
       "$ref": "#/definitions/gettableAlert"
     },
     "gettableAlerts": {
-      "description": "GettableAlerts gettable alerts",
       "type": "array",
       "items": {
         "$ref": "#/definitions/gettableAlert"
